@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Claim Highlighter",
+  "version": "1.0",
+  "description": "Extracts claims and highlights them",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "notifications"
+  ],
+
+  "action":{
+    "default_popup": "popup.html"
+  },
+
+  "host_permissions": [
+    "http://localhost:5000/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["libs/mark.min.js", "content.js"]
+    }
+  ]
+}
