@@ -235,15 +235,16 @@
         url: window.location.href,
         chunks
     }, (response) => {
-        if (!response || !response.rawClaims || response.rawClaims.length === 0) {
+        if (!response || !response.allClaims  || response.allClaims.length === 0) {
             console.log("No claims returned by backend");
             return;
         }
 
         console.log("Claims received:", response.rawClaims);
+        console.log("All Claims received:", response.allClaims);
 
         // Highlight each claim robustly
-        response.rawClaims.forEach(c => highlightClaimAcrossNodes(c.originalClaim));
+        response.allClaims.forEach(c => highlightClaimAcrossNodes(c.originalClaim));
     });
 
 })();

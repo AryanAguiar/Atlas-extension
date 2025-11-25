@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             .then(data => sendResponse(data))
             .catch(err => {
                 console.error(err);
-                sendResponse({ rawClaims: [] });
+                sendResponse({ rawClaims: [], allClaims: [] });
             });
 
         return true; // keeps async channel alive
