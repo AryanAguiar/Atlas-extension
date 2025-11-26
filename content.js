@@ -118,21 +118,26 @@
     // improved highlight across nodes
     function highlightClaimAcrossNodes(claimText, verdict) {
         if (!claimText || !claimText.trim()) return;
+        // console.log("👉 verdict:", verdict);
 
         // Determine styles based on verdict
         let bgColor = '#fff3cd'; // default yellow-ish
         let borderColor = '#856404';
 
-        const v = (verdict || "").toLowerCase();
-        if (["likely true", "partially true", "true"].includes(v)) {
-            bgColor = '#d4edda'; // light green
-            borderColor = '#155724'; // dark green
-        } else if (["uncertain", "unverified"].includes(v)) {
-            bgColor = '#e2e3e5'; // light grey
+        const v = (verdict || "");
+        if (["Likely True", "True"].includes(v)) {
+            bgColor = '#81da96ff'; // light green
+            borderColor = '#112c17ff'; // dark green
+        } else if (["Partially True"].includes(v)) {
+            let bgColor = '#ccaa3aff'; // default yellow-ish
+            let borderColor = '#584303ff';
+        }
+        else if (["Uncertain", "Unverified"].includes(v)) {
+            bgColor = '#bfc4cfff'; // light grey
             borderColor = '#383d41'; // dark grey
-        } else if (["likely false", "partially false", "very likely false", "false"].includes(v)) {
-            bgColor = '#f8d7da'; // light red
-            borderColor = '#721c24'; // dark red
+        } else if (["Likely False", "Partially False", "Very Likely False", "False"].includes(v)) {
+            bgColor = '#d86771ff'; // light red
+            borderColor = '#6d0b14ff'; // dark red
         }
 
         // normalize claim: remove zero-width chars
@@ -288,7 +293,7 @@
     }
 
     // ----------------------------
-    // 4️⃣ Send to backend and highlight claims
+    // shows all claims recieved from backend as well as extractor
     // ----------------------------
     const fullText = getVisibleText();
     const chunks = chunkText(fullText);
@@ -307,7 +312,22 @@
         console.log("All Claims received:", response.allClaims);
 
         // Highlight each claim robustly
-        response.allClaims.forEach(c => highlightClaimAcrossNodes(c.originalClaim, c.verdict));
+        // response.allClaims.forEach(c => highlightClaimAcrossNodes(c.originalClaim, c.verdict));
+    });
+
+    //highlighter
+    chrome.runtime.sendMessage({
+        type: "GET_VERIFIED_CLAIMS",
+        url: window.location.href,
+        chunks
+    }, (response) => {
+        if (!response === 0) {
+            console.log("No claims returned by backend");
+            return;
+        }
+        console.log("Claims received:", response.claims);
+        // Highlight each claim robustly
+        response.claims.forEach(c => highlightClaimAcrossNodes(c.originalClaim, c.verdict));
     });
 
 })();
