@@ -37,9 +37,42 @@
     modal.appendChild(closeBtn);
     closeBtn.addEventListener("click", () => modal.style.display = "none");
 
+    chrome.runtime.sendMessage({ type: "GET_VERIFIED_CLAIMS" }, (data) => {
+        window.claimsData = data.claims || [];
+        console.log("Loaded claims:", window.claimsData);
+    });
+
+    let hideTimeout;
+
     document.addEventListener("mouseover", e => {
         if (e.target.classList.contains("highlighted-claim")) {
-            modal.textContent = e.target.dataset.info || "Claim info";
+            clearTimeout(hideTimeout);
+
+            const claimText = e.target.dataset.info;
+
+            const match = (window.claimsData || []).find(
+                c => c.originalClaim === claimText || c.resolvedClaim === claimText
+            );
+
+            let content = "Claim not found";
+            if (match) {
+                content = '<div style="text-align: left; max-height: 300px; overflow-y: auto;">';
+                for (const [key, value] of Object.entries(match)) {
+                    if (key === '__v') continue; // skip internal version key
+
+                    let displayValue = value;
+                    if (Array.isArray(value)) {
+                        displayValue = value.length ? JSON.stringify(value) : "[]";
+                    } else if (typeof value === 'object' && value !== null) {
+                        displayValue = JSON.stringify(value);
+                    }
+
+                    content += `<div style="margin-bottom: 4px;"><strong>${key}:</strong> <span style="word-break: break-word;">${displayValue}</span></div>`;
+                }
+                content += '</div>';
+            }
+
+            modal.innerHTML = content;
             modal.appendChild(closeBtn);
             modal.style.display = "block";
         }
@@ -47,9 +80,22 @@
 
     document.addEventListener("mouseout", e => {
         if (e.target.classList.contains("highlighted-claim")) {
-            modal.style.display = "none";
+            hideTimeout = setTimeout(() => {
+                modal.style.display = "none";
+            }, 300);
         }
     });
+
+    modal.addEventListener("mouseenter", () => {
+        clearTimeout(hideTimeout);
+    });
+
+    modal.addEventListener("mouseleave", () => {
+        hideTimeout = setTimeout(() => {
+            modal.style.display = "none";
+        }, 300);
+    });
+
 
     // ----------------------------
     // 2️⃣ Universal multi-node claim highlighter
@@ -70,8 +116,24 @@
     }
 
     // improved highlight across nodes
-    function highlightClaimAcrossNodes(claimText, color = 'yellow') {
+    function highlightClaimAcrossNodes(claimText, verdict) {
         if (!claimText || !claimText.trim()) return;
+
+        // Determine styles based on verdict
+        let bgColor = '#fff3cd'; // default yellow-ish
+        let borderColor = '#856404';
+
+        const v = (verdict || "").toLowerCase();
+        if (["likely true", "partially true", "true"].includes(v)) {
+            bgColor = '#d4edda'; // light green
+            borderColor = '#155724'; // dark green
+        } else if (["uncertain", "unverified"].includes(v)) {
+            bgColor = '#e2e3e5'; // light grey
+            borderColor = '#383d41'; // dark grey
+        } else if (["likely false", "partially false", "very likely false", "false"].includes(v)) {
+            bgColor = '#f8d7da'; // light red
+            borderColor = '#721c24'; // dark red
+        }
 
         // normalize claim: remove zero-width chars
         const normalizedClaim = claimText.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
@@ -183,7 +245,8 @@
 
                 const span = document.createElement('span');
                 span.textContent = original.slice(seg.start, seg.end);
-                span.style.backgroundColor = color;
+                span.style.backgroundColor = bgColor;
+                span.style.borderBottom = `2px solid ${borderColor}`;
                 span.style.padding = '1px 2px';
                 span.style.cursor = 'pointer';
                 span.classList.add('highlighted-claim');
@@ -235,7 +298,7 @@
         url: window.location.href,
         chunks
     }, (response) => {
-        if (!response || !response.allClaims  || response.allClaims.length === 0) {
+        if (!response || !response.allClaims || response.allClaims.length === 0) {
             console.log("No claims returned by backend");
             return;
         }
@@ -244,7 +307,7 @@
         console.log("All Claims received:", response.allClaims);
 
         // Highlight each claim robustly
-        response.allClaims.forEach(c => highlightClaimAcrossNodes(c.originalClaim));
+        response.allClaims.forEach(c => highlightClaimAcrossNodes(c.originalClaim, c.verdict));
     });
 
 })();
