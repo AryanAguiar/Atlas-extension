@@ -1,6 +1,6 @@
 document.getElementById("goDashboard").addEventListener("click", () => {
   // open your dashboard in a new tab
-  chrome.tabs.create({ url: "https://your-dashboard-url.com" });
+  chrome.tabs.create({ url: " http://localhost:5173/" });
 });
 
 document.getElementById("toggleHighlight").addEventListener("click", async () => {
